@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 require "pg"
-require "yaml"
 
 class TimestampsUpdater
+  TABLE_SCHEMA = 'public'
+
   def initialize
     @raw_connection = PG.connect(
       host: 'localhost',
@@ -12,41 +13,48 @@ class TimestampsUpdater
       password: '')
   end
 
-  def update
-    puts "starting..."
-    columns = all_columns_of_type("timestamp with time zone")
-    columns.map do |row|
-      puts row.class
-      puts row
+  def update(days, backward = false)
+    postgresql_date_types = [
+      "timestamp without time zone",
+      "timestamp with time zone",
+      "date"
+    ]
+
+    postgresql_date_types.each do |data_type|
+      columns = all_columns_of_type(data_type)
+      columns.each do |column|
+        update_timestamps column["table_name"], column["column_name"], days, backward
+      end
     end
-    update_timestamps("table1", "column_1", 1440)
-    puts "done"
   end
 
-  def self.update
-    TimestampsUpdater.new.update
+  def self.update(days, backward = false)
+    TimestampsUpdater.new.update days, backward
   end
 
   private
 
   def all_columns_of_type(data_type)
-    table_schema = 'public'
     sql = <<~SQL
       SELECT column_name, table_name
       FROM information_schema.columns
-      WHERE table_schema = '#{table_schema}'
+      WHERE table_schema = '#{TABLE_SCHEMA}'
         AND data_type = '#{data_type}'
     SQL
     @raw_connection.exec(sql)
   end
 
-  def update_timestamps(table_name, column_name, minutes)
+  def update_timestamps(table_name, column_name, days, backward = false)
+    operator = backward ? "-" : "+"
     sql = <<~SQL
       UPDATE #{table_name}
-      SET #{column_name} = #{column_name} - INTERVAL '#{minutes} minute'
+      SET #{column_name} = #{column_name} #{operator} INTERVAL '#{days} day'
     SQL
+    puts sql
     @raw_connection.exec(sql)
   end
 end
 
-TimestampsUpdater.update
+days = 10
+backward = false
+TimestampsUpdater.update days, backward
