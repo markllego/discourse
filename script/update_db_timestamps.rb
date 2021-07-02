@@ -8,7 +8,7 @@ class TimestampsUpdater
     @raw_connection = PG.connect(
       host: 'localhost',
       port: 5432,
-      dbname: 'testtest',
+      dbname: 'discourse_development_copy',
       user: 'postgres',
       password: '')
   end
@@ -53,11 +53,10 @@ class TimestampsUpdater
       UPDATE #{table_name}
       SET #{column_name} = #{column_name} #{operator} INTERVAL '#{days} day'
     SQL
-    puts sql
     @raw_connection.exec(sql)
   end
 end
 
 days = 365
-backward = true
+backward = false
 TimestampsUpdater.update days, backward
