@@ -8,7 +8,7 @@ class TimestampsUpdater
     @raw_connection = PG.connect(
       host: 'localhost',
       port: 5432,
-      dbname: 'timestamps_moving_testing',
+      dbname: 'testtest',
       user: 'postgres',
       password: '')
   end
@@ -36,10 +36,13 @@ class TimestampsUpdater
 
   def all_columns_of_type(data_type)
     sql = <<~SQL
-      SELECT column_name, table_name
-      FROM information_schema.columns
-      WHERE table_schema = '#{TABLE_SCHEMA}'
-        AND data_type = '#{data_type}'
+      SELECT c.column_name, c.table_name
+      FROM information_schema.columns AS c
+      JOIN information_schema.tables AS t
+        ON c.table_name = t.table_name
+      WHERE c.table_schema = '#{TABLE_SCHEMA}'
+        AND c.data_type = '#{data_type}'
+        AND t.table_type = 'BASE TABLE'
     SQL
     @raw_connection.exec(sql)
   end
@@ -55,6 +58,6 @@ class TimestampsUpdater
   end
 end
 
-days = 10
-backward = false
+days = 365
+backward = true
 TimestampsUpdater.update days, backward
